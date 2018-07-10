@@ -1,0 +1,3 @@
+Private Sub Application_Startup()
+    FolderIcons.Initialize
+End Sub
