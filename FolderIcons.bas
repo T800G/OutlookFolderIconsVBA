@@ -1,14 +1,22 @@
+Attribute VB_Name = "FolderIcons"
 Option Explicit
 
 Private g_fiEvents As FolderIconsEvents
 
-'MSXML3 reference must be added to the project if not using Object (IDispatch)
+'MSXML3 reference must be added to the project!
 Private g_xmlDoc As Object 'MSXML2.DOMDocument
 
 'settings save location
-Private Const xmlPath = "D:\T800\Programming\VBA\Outlook Folder Icons\OutlookFolderIcons.xml"
+'Private Const g_xmlPath = "D:\T800\Programming\VBA\Outlook Folder Icons\OutlookFolderIcons.xml"
+Private g_xmlPath As String
 
-Private Const strDefaultXML = "<?xml version='1.0'?><OUTLOOK></OUTLOOK>"
+Private Const g_strDefaultXML = "<?xml version='1.0'?><OUTLOOK></OUTLOOK>"
+
+Private Const S_OK = &H0
+Private Const S_FALSE = &H1
+Private Const E_INVALIDARG = &H80070057
+
+Private Const MAX_PATH = 256
 
 Private Const olFolderMIN = 3
 Private Const olFolderMAX = 30
@@ -67,6 +75,88 @@ Private Declare Function GetWindowThreadProcessId Lib "user32" (ByVal hWnd As Lo
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 #End If
 '//////////////////////////////////////////////////////////////////////
+Private Enum CSIDL_VALUES
+    CSIDL_DESKTOP = &H0                            ' <desktop>
+    CSIDL_INTERNET = &H1                           ' Internet Explorer (icon on desktop)
+    CSIDL_PROGRAMS = &H2                           ' Start Menu\Programs
+    CSIDL_CONTROLS = &H3                           ' My Computer\Control Panel
+    CSIDL_PRINTERS = &H4                           ' My Computer\Printers
+    CSIDL_PERSONAL = &H5                           ' My Documents
+    CSIDL_FAVORITES = &H6                          ' <user name>\Favorites
+    CSIDL_STARTUP = &H7                            ' Start Menu\Programs\Startup
+    CSIDL_RECENT = &H8                             ' <user name>\Recent
+    CSIDL_SENDTO = &H9                             ' <user name>\SendTo
+    CSIDL_BITBUCKET = &HA                          ' <desktop>\Recycle Bin
+    CSIDL_STARTMENU = &HB                          ' <user name>\Start Menu
+    CSIDL_MYDOCUMENTS = &H5                '  Personal was just a silly name for My Documents
+    CSIDL_MYMUSIC = &HD                            ' "My Music" folder
+    CSIDL_MYVIDEO = &HE                            ' "My Videos" folder
+    CSIDL_DESKTOPDIRECTORY = &H10                  ' <user name>\Desktop
+    CSIDL_DRIVES = &H11                            ' My Computer
+    CSIDL_NETWORK = &H12                           ' Network Neighborhood (My Network Places)
+    CSIDL_NETHOOD = &H13                           ' <user name>\nethood
+    CSIDL_FONTS = &H14                             ' windows\fonts
+    CSIDL_TEMPLATES = &H15
+    CSIDL_COMMON_STARTMENU = &H16                  ' All Users\Start Menu
+    CSIDL_COMMON_PROGRAMS = &H17                   ' All Users\Start Menu\Programs
+    CSIDL_COMMON_STARTUP = &H18                    ' All Users\Startup
+    CSIDL_COMMON_DESKTOPDIRECTORY = &H19           ' All Users\Desktop
+    CSIDL_APPDATA = &H1A                           ' <user name>\Application Data
+    CSIDL_PRINTHOOD = &H1B                         ' <user name>\PrintHood
+    CSIDL_LOCAL_APPDATA = &H1C                     ' <user name>\Local Settings\Applicaiton Data (non roaming)
+    CSIDL_ALTSTARTUP = &H1D                        ' non localized startup
+    CSIDL_COMMON_ALTSTARTUP = &H1E                 ' non localized common startup
+    CSIDL_COMMON_FAVORITES = &H1F
+    CSIDL_INTERNET_CACHE = &H20
+    CSIDL_COOKIES = &H21
+    CSIDL_HISTORY = &H22
+    CSIDL_COMMON_APPDATA = &H23                    ' All Users\Application Data
+    CSIDL_WINDOWS = &H24                           ' GetWindowsDirectory()
+    CSIDL_SYSTEM = &H25                            ' GetSystemDirectory()
+    CSIDL_PROGRAM_FILES = &H26                     ' C:\Program Files
+    CSIDL_MYPICTURES = &H27                        ' C:\Program Files\My Pictures
+    CSIDL_PROFILE = &H28                           ' USERPROFILE
+    CSIDL_SYSTEMX86 = &H29                         ' x86 system directory on RISC
+    CSIDL_PROGRAM_FILESX86 = &H2A                  ' x86 C:\Program Files on RISC
+    CSIDL_PROGRAM_FILES_COMMON = &H2B              ' C:\Program Files\Common
+    CSIDL_PROGRAM_FILES_COMMONX86 = &H2C           ' x86 Program Files\Common on RISC
+    CSIDL_COMMON_TEMPLATES = &H2D                  ' All Users\Templates
+    CSIDL_COMMON_DOCUMENTS = &H2E                  ' All Users\Documents
+    CSIDL_COMMON_ADMINTOOLS = &H2F                 ' All Users\Start Menu\Programs\Administrative Tools
+    CSIDL_ADMINTOOLS = &H30                        ' <user name>\Start Menu\Programs\Administrative Tools
+    CSIDL_CONNECTIONS = &H31                       ' Network and Dial-up Connections
+    CSIDL_COMMON_MUSIC = &H35                      ' All Users\My Music
+    CSIDL_COMMON_PICTURES = &H36                   ' All Users\My Pictures
+    CSIDL_COMMON_VIDEO = &H37                      ' All Users\My Video
+    CSIDL_RESOURCES = &H38                         ' Resource Direcotry
+    CSIDL_RESOURCES_LOCALIZED = &H39               ' Localized Resource Direcotry
+    CSIDL_COMMON_OEM_LINKS = &H3A                  ' Links to All Users OEM specific apps
+    CSIDL_CDBURN_AREA = &H3B                       ' USERPROFILE\Local Settings\Application Data\Microsoft\CD Burning
+    'unused     &H003c
+    CSIDL_COMPUTERSNEARME = &H3D                   ' Computers Near Me (computered from Workgroup membership)
+    CSIDL_FLAG_CREATE = &H8000                     ' combine with CSIDL_ value to force folder creation in SHGetFolderPath()
+    CSIDL_FLAG_DONT_VERIFY = &H4000                ' combine with CSIDL_ value to return an unverified folder path
+    CSIDL_FLAG_DONT_UNEXPAND = &H2000              ' combine with CSIDL_ value to avoid unexpanding environment variables
+    CSIDL_FLAG_NO_ALIAS = &H1000                   ' combine with CSIDL_ value to insure non-alias versions of the pidl
+    CSIDL_FLAG_PER_USER_INIT = &H800               ' combine with CSIDL_ value to indicate per-user init (eg. upgrade)
+    CSIDL_FLAG_MASK = &HFF00                       ' mask for all possible flag values
+End Enum
+Private Enum SHGFP_TYPE
+    SHGFP_TYPE_CURRENT = &H0  'current value for user, verify it exists
+    SHGFP_TYPE_DEFAULT = &H1  'default value, may not exist
+End Enum
+
+'hToken = -1 for the Default User
+#If Win64 Then
+Private Declare PtrSafe Function SHGetFolderPath Lib "shell32.dll" Alias "SHGetFolderPathA" _
+                                (ByVal hWnd As Long, ByVal csidl As CSIDL_VALUES, _
+                                ByVal hToken As LongPtr, ByVal dwFlags As SHGFP_TYPE, ByVal szPath As String) As LongPtr
+#Else
+Private Declare Function SHGetFolderPath Lib "shell32.dll" Alias "SHGetFolderPathA" _
+                                (ByVal hWnd As Long, ByVal csidl As CSIDL_VALUES, _
+                                ByVal hToken As Long, ByVal dwFlags As SHGFP_TYPE, ByVal szPath As String) As Long
+#End If
+'//////////////////////////////////////////////////////////////////////
 Private Enum SystemMetrics
     SM_CXICON = 11
     SM_CYICON = 12
@@ -107,7 +197,7 @@ Public Sub SetFolderIcon()
             Exit Sub
         End If
         SetFolderIconImpl ActiveExplorer.CurrentFolder, path
-        g_xmlDoc.Save xmlPath
+        g_xmlDoc.Save g_xmlPath
     End If
 End Sub
 '//////////////////////////////////////////////////////////////////////
@@ -118,7 +208,7 @@ Public Sub RemoveFolderIcon()
     If MsgBox("Remove icon from" & vbCrLf & ActiveExplorer.CurrentFolder.folderPath, _
                 vbOKCancel Or vbDefaultButton2 Or vbQuestion, "Remove Folder Icon") = vbCancel Then Exit Sub
     DeleteFolderIconSetting ActiveExplorer.CurrentFolder
-    g_xmlDoc.Save xmlPath
+    g_xmlDoc.Save g_xmlPath
     ActiveExplorer.CurrentFolder.SetCustomIcon Nothing 'undocumented way to get default icon back!
 End Sub
 '//////////////////////////////////////////////////////////////////////
@@ -135,7 +225,11 @@ Public Function Initialize() As Variant
         Set oRoot = oStore.GetRootFolder
         EnumerateFolders oRoot
     Next
-    g_xmlDoc.Save xmlPath
+    Dim savepath As String
+    'create folder if not exists
+    savepath = GetMyDocumentsPath() & "\Outlook Files"
+    If Dir(savepath, vbDirectory) = vbNullString Then MkDir (savepath)
+    g_xmlDoc.Save g_xmlPath
 End Function
 '//////////////////////////////////////////////////////////////////////
 Private Sub EnumerateFolders(ByRef oFolder As Outlook.folder)
@@ -200,10 +294,11 @@ Private Sub LoadSettings()
         Set g_xmlDoc = CreateObject("MSXML2.DOMDocument") 'New MSXML2.DOMDocument
     End If
     g_xmlDoc.async = False
-    If FileExists(xmlPath) Then
-        g_xmlDoc.Load xmlPath
+    g_xmlPath = GetMyDocumentsPath() & "\Outlook Files\FolderIcons.xml"
+    If FileExists(g_xmlPath) Then
+        g_xmlDoc.Load g_xmlPath
     Else
-        g_xmlDoc.LoadXML strDefaultXML
+        g_xmlDoc.LoadXML g_strDefaultXML
     End If
     If g_xmlDoc.parseError.ErrorCode <> 0 Then
         Debug.Print "g_xmlDoc.parseError=" & g_xmlDoc.parseError.reason
@@ -329,4 +424,9 @@ Private Function CalcMD5(strBuffer As String) As String
     For lp = 1 To Len(result)
             CalcMD5 = CalcMD5 & Right("00" & Hex(Asc(Mid(result, lp, 1))), 2)
     Next
+End Function
+Public Function GetMyDocumentsPath() As String
+    Dim strBuffer As String
+    strBuffer = Space$(MAX_PATH)
+    If SHGetFolderPath(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, strBuffer) = S_OK Then GetMyDocumentsPath = Left$(strBuffer, InStr(strBuffer, Chr$(0)) - 1)
 End Function
