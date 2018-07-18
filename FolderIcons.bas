@@ -1,10 +1,9 @@
-Attribute VB_Name = "FolderIcons"
 Option Explicit
 
 Private g_fiEvents As FolderIconsEvents
 
-'MSXML3 reference must be added to the project!
-Private g_xmlDoc As MSXML2.DOMDocument
+'MSXML3 reference must be added to the project if not using Object (IDispatch)
+Private g_xmlDoc As Object 'MSXML2.DOMDocument
 
 'settings save location
 Private Const xmlPath = "D:\T800\Programming\VBA\Outlook Folder Icons\OutlookFolderIcons.xml"
@@ -198,7 +197,7 @@ Private Sub LoadSettings()
     'this sub should be called only once
     On Error GoTo ErrHandler
     If g_xmlDoc Is Nothing Then
-        Set g_xmlDoc = New MSXML2.DOMDocument
+        Set g_xmlDoc = CreateObject("MSXML2.DOMDocument") 'New MSXML2.DOMDocument
     End If
     g_xmlDoc.async = False
     If FileExists(xmlPath) Then
@@ -218,7 +217,7 @@ End Sub
 Private Function GetFolderIconSetting(ByRef fldr As folder) As String
     On Error GoTo ErrHandler
     If g_xmlDoc Is Nothing Then Exit Function
-    Dim pNode As MSXML2.IXMLDOMNode
+    Dim pNode As Object 'MSXML2.IXMLDOMNode
     Set pNode = g_xmlDoc.SelectSingleNode("//OUTLOOK/STORE[@storeidMD5='" & CalcMD5(fldr.Store.storeID) & "']/FOLDER[@entryID='" & fldr.entryID & "']")
     If pNode Is Nothing Then Exit Function
     GetFolderIconSetting = pNode.Text
@@ -230,7 +229,8 @@ End Function
 Private Sub SaveFolderIconSetting(ByRef fldr As folder, ByVal iconPath As String)
     On Error GoTo ErrHandler
     If g_xmlDoc Is Nothing Then Exit Sub
-    Dim pRoot As MSXML2.IXMLDOMNode, pStore As MSXML2.IXMLDOMNode, pFolder As MSXML2.IXMLDOMNode
+    'Dim pRoot As MSXML2.IXMLDOMNode, pStore As MSXML2.IXMLDOMNode, pFolder As MSXML2.IXMLDOMNode
+    Dim pRoot As Object, pStore As Object, pFolder As Object
     Set pRoot = g_xmlDoc.SelectSingleNode("//OUTLOOK")
     If pRoot Is Nothing Then
         Debug.Print "critical error: no OUTLOOK node" 'not my xml?
@@ -264,10 +264,10 @@ End Sub
 Private Sub DeleteFolderIconSetting(ByRef fldr As folder)
     On Error GoTo ErrHandler
     If g_xmlDoc Is Nothing Then Exit Sub
-    Dim pNode As MSXML2.IXMLDOMNode
+    Dim pNode As Object 'MSXML2.IXMLDOMNode
     Set pNode = g_xmlDoc.SelectSingleNode("//OUTLOOK/STORE[@storeidMD5='" & CalcMD5(fldr.Store.storeID) & "']/FOLDER[@entryID='" & fldr.entryID & "']")
     If pNode Is Nothing Then Exit Sub
-    Dim parent As MSXML2.IXMLDOMNode
+    Dim parent As Object 'MSXML2.IXMLDOMNode
     Set parent = pNode.parentNode
     parent.RemoveChild pNode
     If parent.ChildNodes.Length = 0 Then parent.parentNode.RemoveChild parent 'no child nodes left, remove self (store level)
@@ -299,12 +299,14 @@ Private Function IsDefaultFolder(ByRef fldr As folder) As Boolean
         End If
     Next i
 End Function
-Private Function AddXMLNode(ByRef parentNode As MSXML2.IXMLDOMNode, ByVal nodeName As String, ByVal nodeText As String, ByVal namespaceURI As String, _
-                            ByVal attributeName As String, ByVal attributeValue As String) As MSXML2.IXMLDOMNode
+'Private Function AddXMLNode(ByRef parentNode As Object, _ 'MSXML2.IXMLDOMNode,
+ Private Function AddXMLNode(ByRef parentNode As Object, _
+                            ByVal nodeName As String, ByVal nodeText As String, ByVal namespaceURI As String, _
+                            ByVal attributeName As String, ByVal attributeValue As String) As Object 'MSXML2.IXMLDOMNode
     On Error GoTo ErrHandler
     'msoCustomXMLNodeElement=1,msoCustomXMLNodeAttribute=2
     Set AddXMLNode = parentNode.OwnerDocument.createNode(1, nodeName, namespaceURI)
-    Dim attr As MSXML2.IXMLDOMAttribute
+    Dim attr As Object 'MSXML2.IXMLDOMAttribute
     Set attr = parentNode.OwnerDocument.createAttribute(attributeName)
     attr.Value = attributeValue
     AddXMLNode.Attributes.setNamedItem attr

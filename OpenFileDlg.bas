@@ -55,7 +55,7 @@ Redo:
     OpenFile.Flags = OFN_FILEMUSTEXIST
     lReturn = GetOpenFileNameWin32(OpenFile)
     If lReturn <> 0 Then
-       GetOpenFileName = Trim(StrConv(OpenFile.lpstrFile, vbUnicode))
+        GetOpenFileName = Trim(OpenFile.lpstrFile) 'StrConv(OpenFile.lpstrFile, vbUnicode))
        If InStr(1, GetOpenFileName, "?", vbTextCompare) <> 0 Then
             GetOpenFileName = vbNullString
             GoTo Redo
