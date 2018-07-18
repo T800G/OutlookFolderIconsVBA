@@ -184,9 +184,10 @@ Public Sub SetFolderIcon()
     threadID = GetWindowThreadProcessId(hWnd, vbNull)
     If threadID <> GetCurrentThreadId() Then hWnd = 0
     Dim fileFilter As String
-    fileFilter = "Icons (*.ico)" & Chr(0) & "*.ico" & Chr(0) & _
-                "Pictures (*.bmp, *.dib, *.jpg, *.jpeg, *.jpe, *.jfif, *.gif)" & Chr(0) & _
-                "*.bmp;*.dib;*.jpg;*.jpeg;*.jpe;*.jfif;*.gif" & Chr(0) '& _
+    fileFilter ="Pictures (*.bmp, *.dib, *.jpg, *.jpeg, *.jpe, *.jfif, *.gif)" & Chr(0) & _
+                "*.bmp;*.dib;*.jpg;*.jpeg;*.jpe;*.jfif;*.gif" & Chr(0) & _
+				"Icons (*.ico)" & Chr(0) & _
+				"*.ico" & Chr(0)'& _
                 '"All (*.*)" & Chr(0) & "*.*" & Chr(0)
     path = OpenFileDlg.GetOpenFileName(0, hWnd, fileFilter, "Select icon")
     If path <> "" Then
